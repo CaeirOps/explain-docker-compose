@@ -61,19 +61,39 @@ Observando o conteúdo do arquivo YAML mostrado acima, podemos observar que há 
 
  - No caso do arquivo acima temos um parâmetro (que iremos detalhar mais abaixo) chamado "replicas", onde este serve para informar a quantidade de containers "idênticos" desejamos em nosso ambiente, assim o compose irá criar a quantidade de containers informada e todos com a mesma configuração, identificando-os de uma forma parecida com esta: "nome-do-projeto_web-server.1, nome-do-projeto_web-server.2, nome-do-projeto_web-server.n"
 
-O nome do serviço pode ser variado e não há uma regra
+O nome do serviço pode ser variado, geralmente se atribui um nome que corresponda a função daquele serviço, mas não há uma regra para a criação dos nomes.
 
 ### build e image
+Podemos ver no arquivo que também há uma opção de 'image', essa opção deve ser utilizada para cada serviço que declararmos dentro do arquivo, pois é com o valor desta opção que o Docker entenderá qual imagem de container deve ser utilizada para a construção do container.
+
+É possível ao invés de utilizar a opção 'image', utilizarmos a opção 'build' onde informaremos o contexto e o arquivo (Dockerfile) que possui as instruções para realizar o build de uma imagem para ser utilizada.
+
+Também podemos combinar as duas opções, onde a opção 'build' continuará exercendo seu papel de fornecer os argumentos necessários para o build de uma nova imagem e a opção 'image' será apenas para informarmos qual será o nome dado à imagem que será construída bem como a sua tag.
 
 ### ports e expose
+Estas opções fazem refência às portas que serão utilizadas para acessar os serviços providos dentro do container, onde a opção 'ports' é utilizada para informarmos a porta do sistema hospedeiro que receberá as requisições e para qual porta deve encaminhar estas requisições para dentro do container, respectivamente como visto no arquivo modelo acima.
+
+Já a opção 'expose' pode ser utilizada para informar quais portas estarão abertas para receber requisições naquele container, porém apenas das redes qual este faz parte, muito utilizada quando queremos que apenas os serviços se comuniquem entre si para consumir ou encaminhar requisições.
 
 ### deploy
+Há diversos parametros que podem ser utilizados neste setor. As configurações da opção 'deploy' determinam as regras para a execução do serviço, como mostrado no exemplo os principais argumentos utilizados, onde podemos informar em quais nodes de um cluster este serviço poderá ser executado, o método de execução, quantidade de réplicas e limite de recursos computacionais que serão utilizados pelo serviço.
 
 ### restart e restart_policy
+Com estas opções conseguimos definer o comportamento desejado em caso de queda do container, a ação que deve ser tomada caso o processo responsável pelo container morra. É possível utilizar apenas uma das duas opções por serviço. Na opção 'restart' temos os seguintes argumentos que podem ser utilizados para definir o comportamento:
 
-### network
+ - no: Utilizada para caso o container saia do estado de execução o compose não tente executá-lo novamente;
+ - always: Utilizada para que sempre que o container sair do estado de execução, independetemente da causa, o compose execute-o novamente;
+ - on-failure: Irá tentar executar o container novamente somente caso o código de retorno resulte em uma falha;
+ - unless-stopped: Sempre irá garantir que o estado do container seja em execução, ao menos que este seja colocado em estado 'stopped' manualmente ou por algum outro motivo;
+
+Já a opção 'restart_policy' é utilizada dentro do setor 'deploy', onde conseguimos passar algumas informações adicionais como quantidade de tentativas para iniciar o container, tempo de espera para tentar iniciá-lo novamente, tempo máximo decorrido para executar as tentativas de iniciar o container, e a condição que o compose irá utilizar para tentar executar o container novamente podendo ser escolhidas entre 'none', 'on-failure' e 'any'.
+
+### networks
+Aqui nesta opção é onde podemos definir as redes que deverão ser criadas para que os serviços façam parte. Para que uma rede seja criada é necessário realizar a declaração dela como mostrado no arquivo exemplo, onde passamos o nome da rede a ser criada, o tipo da rede e driver e até mesmo a subnet.
+Feito a declaração dela é necessário referenciá-la na configuração do serviço para este faço uso da rede criada.
 
 ### volumes
+Assim como na opção 'networks', aqui nós devemos fazer a declaração dos volumes que desejamos criar e referenciar estes depois dentro de cada serviço que irá utilizá-lo. É possível realizar o uso de todos os tipos de volumes que o Docker permite, bastando
 
 ### environment e env_file
 
@@ -91,4 +111,4 @@ O nome do serviço pode ser variado e não há uma regra
 
 - Falar da atualização dos containers
 - Falar da versão e engine
-
+- Falar do compose file com o swarm, e opção de build de não funciona
