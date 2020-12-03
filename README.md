@@ -31,7 +31,7 @@ networks:
     driver: overlay
 
 volumes:
-  site_root:
+  site_conf:
 
 services:
   web-server:
@@ -50,7 +50,8 @@ services:
     networks:
       - web_network
     volumes:
-      - site_root:/var/www/html
+      - /dir/site/html:/var/www/html
+      - site_conf:/etc/httpd
 
 ```
 
@@ -93,22 +94,101 @@ Aqui nesta opção é onde podemos definir as redes que deverão ser criadas par
 Feito a declaração dela é necessário referenciá-la na configuração do serviço para este faço uso da rede criada.
 
 ### volumes
-Assim como na opção 'networks', aqui nós devemos fazer a declaração dos volumes que desejamos criar e referenciar estes depois dentro de cada serviço que irá utilizá-lo. É possível realizar o uso de todos os tipos de volumes que o Docker permite, bastando
+Assim como na opção 'networks', aqui nós devemos fazer a declaração dos volumes que desejamos criar e referenciar estes depois dentro de cada serviço que irá utilizá-lo. Em caso de volumes do tipo bind, onde nós mapeamos diretórios existentes em nosso host hospedeiro, a declaração fora da configuração do serviço não é necessária, basta informar o caminho absoluto ou relativo(de acordo com o contexto passado) do diretório que deve ser refletido e o seu destino dentro do container.
 
 ### environment e env_file
+Com essas opções conseguimos definir variáveis de ambientes para utilizar dentro de nossos containers, algumas imagens já possuem algumas variáveis bem úteis que podem ser utilizadas, importante ler a documentação oficial dela caso esteja baixando do Docker Hub por exemplo.
+
+- environment: Com essa opção é possível passar em formato de lista todas as variáveis de ambiente e seus valores que serão utilizadas no serviço;
+- env_file: Nesta opção é possível informar um arquivo que será utilizado como fonte de consulta para configurar as variáveis, onde este arquivo deve conter uma variável por linha e seu respectivo valor.
 
 ### depends_on
+Podemos com esta opção informar que para que um serviço seja iniciado ele depende que outro seja iniciado primeiro, criando uma dependencia. Assim o compose se encarrega de fazer com que o serviço dependente só seja executado após todos os outros seviços declarados aqui estejam em execução. É um caso de uso realizar a utilização desta opção quando se precisa que um serviço de banco de dados por exemplo, seja provisionado e esteja 'up' para que outro serviço possa consumi-lo assim que for executado, caso contrário este não ficará em estado de execução.
 
 ## command e entrypoint
+Utilizando estas opções é possível alterar o processo principal responsável pela execução e função daquele container. Ambos subistituem o parametrô 'CMD' e 'ENTRYPOINT' padrão da imagem utilizada. É preciso cuidado com estas opções e utilizar somente em caso real de necessidade de alteração do processo principal do container, pois caso este processo por algum motivo seja terminado, o container também entrará em estado de 'exited'.
 
-### demonstração
+### Demonstração
+MÃO NA MASSA!!
+Algumas distribuições podem possuir o pacote do docker-compose em seus repositórios facilitando a instalação através do gerenciador de pacotes, porém a versão quase sempre não estará atualizada de acordo com as releases liberadas, a vantagem é que em caso de atualização de versão o gerenciado de pacotes irá se encarregar de realizar o processo facilmente pra você.
+
+Contudo não é nada complicado realizar a instalção e atualização de forma manual, garantindo assim que temos a ultima release ou a release desejada diretamente do repositório do docker-compose, veremos então como realizar a instalação de forma manual.
+
+> Lembrando que para realizar este laboratório você já deve possuir o docker instalado e permissão para executálo, caso ainda não tenho verifique o [post](https://blog.4linux.com.br/docker-beginners/) que falamos sobre isso.
+
+#### Instalação
+Execute o comando abaixo para realizar o download do binário do docker-compose diretamente do repositório ofical do Github:
+```shell
+sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+```
+
+Feito isso, vamos garantir que teremos permissão de execução deste binário, o que por padrão no Linux não é dado quando se cria um arquivo novo devido à umask padrão do SO, assim execute o comando abaixo:
+```shell
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+Agora, para que nosso usuário para utilizar este binário de forma simples, sem que seja necessário utilizar o caminho absoluto do arquivo para executar o compose, iremos criar um link simbólico para um diretório já conhecido na variável '$PATH' de todos os usuários:
+```shell
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
+#### Arquivo Compose
+Daremos inicio então a criação de nosso arquivo docker-compose, para isso vamos primeiro realizar a criação de um diretório para assim lá dentro realizarmos a construção de nosso ambiente:
+```shell
+mkdir lab-compose ; cd lab-compose
+```
+
+Feito isso vamos dar início aqui à criação do nosso compose file, onde o propósito será iniciar um serviço Wordpress e um serviço de banco de dados MySQL, para termos acessível um site. Assim você pode copiar e colar em seu terminal o todo o comando a seguir que irá criar o compose file já com o conteúdo necessário para a execução:
+```shell
+cat <<EOF > docker-compose.yml
+version: '3'
+
+services:
+   db:
+     image: mysql:5.7
+     volumes:
+       - db_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: somewordpress
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: wordpress
+
+   wordpress:
+     depends_on:
+       - db
+     image: wordpress:latest
+     ports:
+       - "80:80"
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+volumes:
+    db_data: 
+EOF
+```
+
+Agora com o arquivo criado, basta executarmos o comando do docker compose para iniciar todos esses serviços com as configurações passadas no arquivo, assim execute em terminal o comando a seguir:
+```shell
+docker-compose up -d
+```
+
+Agora você pode testar em seu navegador se o wordpress já está acessível através do endereço "http://127.0.0.1/", onde deverá abrir a tela de configuração do wordpress.
+Você também pode realizar atualizações no seu arquivo compose para modificar as configurações de um serviço e sem a necessidade de 'derrubar' todos os serviços para atualizar o ambiente, basta executar o comando 'up' novamente que somente o serviço alterado será atualizado.
+
+Caso queira remover os container e os recursos criados basta executar o comando:
+```shell
+docker-compose down
+```
 
 ## Onde utilizar?
+Os cenários onde podemos realizar a execução do compose irá depender bastante das necessidades e políticas implantando em seu local de trabalho, porém a maior utilização dele e seu próposito se dá em ambientes de desenvolvimento ou em ambientes onde se tem apenas um 'node' que irá executar os containers.
 
 ## Próximos passos
+Agora que já entendemos o que é o compose e como utilizá-lo, o próximo passo é aprender sobre o Docker Swarm, orquestrador de containers da Docker e que também faz uso de arquivos de configuração como o compose para executar todos os serviços de seu cluster.
 
-## NOTAS
-
-- Falar da atualização dos containers
-- Falar da versão e engine
-- Falar do compose file com o swarm, e opção de build de não funciona
+Então nos vemos no próximo post!!
